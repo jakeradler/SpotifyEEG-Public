@@ -47,29 +47,32 @@ const main = async () => {
     });
   console.log("Logged in");
 
-  notion.calm().subscribe((calm) => {
-    if (calm.probability > 0.3) {
-      console.log("Hello World!");
-      spotifyApi.skipToNext()
+  // notion.calm().subscribe((calm) => {
+  //   if (calm.probability > 0.3) {
+  //     console.log("Hello World!");
+  //     spotifyApi.skipToNext()
+  //     .then(function() {
+  //       console.log('Skip to next');
+  //     }, function(err) {
+  //       //if the user making the request is non-premium, a 403 FORBIDDEN response code will be returned
+  //       console.log('Something went wrong!', err);
+  //     });
+  //   }
+  // });
+
+
+  notion.kinesis("rotateClockwise").subscribe((intent) => {
+    console.log("Hello World!");
+    spotifyApi.skipToNext()
       .then(function() {
         console.log('Skip to next');
       }, function(err) {
         //if the user making the request is non-premium, a 403 FORBIDDEN response code will be returned
         console.log('Something went wrong!', err);
       });
-    }
   });
 
-  // notion.kinesis("push").subscribe((intent) => {
-  //   console.log("Push");
-  //   spotifyApi.skipToNext()
-  // .then(function() {
-  //   console.log('Skip to next');
-  // }, function(err) {
-  //   //if the user making the request is non-premium, a 403 FORBIDDEN response code will be returned
-  //   console.log('Something went wrong!', err);
-  // });
-  // });
+ 
 };
 
 main();
