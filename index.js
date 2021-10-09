@@ -1,95 +1,77 @@
-var SpotifyWebApi = require('spotify-web-api-node');
-const express = require('express')
+const SpotifyWebApi = require('spotify-web-api-node');
+const spotifyApi = new SpotifyWebApi();
+const { Notion } = require("@neurosity/notion");
+require("dotenv").config();
 
-// This file is copied from: https://github.com/thelinmichael/spotify-web-api-node/blob/master/examples/tutorial/00-get-access-token.js
+const deviceId = process.env.DEVICE_ID || "";
+const email = process.env.EMAIL || "";
+const password = process.env.PASSWORD || "";
+const accessToken = process.env.SPOTIFY_ACCESS_TOKEN || "";
 
-const scopes = [
-    'ugc-image-upload',
-    'user-read-playback-state',
-    'user-modify-playback-state',
-    'user-read-currently-playing',
-    'streaming',
-    'app-remote-control',
-    'user-read-email',
-    'user-read-private',
-    'playlist-read-collaborative',
-    'playlist-modify-public',
-    'playlist-read-private',
-    'playlist-modify-private',
-    'user-library-modify',
-    'user-library-read',
-    'user-top-read',
-    'user-read-playback-position',
-    'user-read-recently-played',
-    'user-follow-read',
-    'user-follow-modify'
-  ];
-  
-// credentials are optional
-var spotifyApi = new SpotifyWebApi({
-    clientId: 'ff23cd0b428444f59457de3525691eb2',
-    clientSecret: 'a6753a3df3f44458b3e46f2c78d93f25',
-    redirectUri: 'http://localhost:8888/callback'
-  });
-  
-  const app = express();
-  
-  app.get('/login', (req, res) => {
-    res.redirect(spotifyApi.createAuthorizeURL(scopes));
-  });
-  
-  app.get('/callback', (req, res) => {
-    const error = req.query.error;
-    const code = req.query.code;
-    const state = req.query.state;
-  
-    if (error) {
-      console.error('Callback Error:', error);
-      res.send(`Callback Error: ${error}`);
-      return;
-    }
-  
-    spotifyApi
-      .authorizationCodeGrant(code)
-      .then(data => {
-        const access_token = data.body['access_token'];
-        const refresh_token = data.body['refresh_token'];
-        const expires_in = data.body['expires_in'];
-  
-        spotifyApi.setAccessToken(access_token);
-        spotifyApi.setRefreshToken(refresh_token);
-  
-        console.log('access_token:', access_token);
-        console.log('refresh_token:', refresh_token);
-  
-        console.log(
-          `Sucessfully retreived access token. Expires in ${expires_in} s.`
-        );
-        res.send('Success! You can now close the window.');
-  
-        setInterval(async () => {
-          const data = await spotifyApi.refreshAccessToken();
-          const access_token = data.body['access_token'];
-  
-          console.log('The access token has been refreshed!');
-          console.log('access_token:', access_token);
-          spotifyApi.setAccessToken(access_token);
-        }, expires_in / 2 * 1000);
-      })
-      .catch(error => {
-        console.error('Error getting Tokens:', error);
-        res.send(`Error getting Tokens: ${error}`);
+const verifyEnvs = (email, password, deviceId) => {
+  const invalidEnv = (env) => {
+    return env === "" || env === 0;
+  };
+  if (
+    invalidEnv(email) ||
+    invalidEnv(password) ||
+    invalidEnv(deviceId)
+  ) {
+    console.error(
+      "Please verify deviceId, email and password are in .env file, quitting..."
+    );
+    process.exit(0);
+  }
+};
+verifyEnvs(email, password, deviceId);
+
+console.log(`${email} attempting to authenticate to ${deviceId}`);
+
+const notion = new Notion({
+  deviceId
+});
+
+spotifyApi.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
+
+
+
+const main = async () => {
+  await notion
+    .login({
+      email,
+      password
+    })
+    .catch((error) => {
+      console.log(error);
+      throw new Error(error);
+    });
+  console.log("Logged in");
+
+  notion.calm().subscribe((calm) => {
+    if (calm.probability > 0.3) {
+      console.log("Hello World!");
+      spotifyApi.skipToNext()
+      .then(function() {
+        console.log('Skip to next');
+      }, function(err) {
+        //if the user making the request is non-premium, a 403 FORBIDDEN response code will be returned
+        console.log('Something went wrong!', err);
       });
+    }
   });
-  
-  app.listen(8888, () =>
-    console.log(
-      'HTTP Server up. Now go to http://localhost:8888/login in your browser.'
-    )
-  );
 
+  // notion.kinesis("push").subscribe((intent) => {
+  //   console.log("Push");
+  //   spotifyApi.skipToNext()
+  // .then(function() {
+  //   console.log('Skip to next');
+  // }, function(err) {
+  //   //if the user making the request is non-premium, a 403 FORBIDDEN response code will be returned
+  //   console.log('Something went wrong!', err);
+  // });
+  // });
+};
 
-
-
+main();
 
 
